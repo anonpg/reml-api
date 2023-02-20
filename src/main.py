@@ -26,6 +26,15 @@ def read_root():
 @app.get("/predict")
 def read_item(req: Request):
     params = dict(req.query_params)
+    params = {
+        'city2': np.nan,
+        'city_plan': np.nan,
+        'nearest_sta': np.nan,
+        'nearest_sta_dist': np.nan,
+        'floor_area': np.nan,
+        'front_road_width': np.nan,
+        **params,
+    }
     df = pd.DataFrame([params])
     res = model.predict(df).iloc[0]
     return res
