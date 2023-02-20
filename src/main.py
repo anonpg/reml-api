@@ -33,6 +33,7 @@ def read_item(req: Request):
         'nearest_sta_dist': np.nan,
         'floor_area': np.nan,
         'front_road_width': np.nan,
+        'building_year': np.nan,
         **params,
     }
     df = pd.DataFrame([params])
