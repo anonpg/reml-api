@@ -54,7 +54,7 @@ def read_metadata():
 @app.get("/rakumachis")
 def read_rakumachis():
     db = dataset.connect(os.getenv('DATABASE_URL'))
-    return db['rakumachis'].find()
+    return list(db['rakumachis'].find())
 
 
 # https://qiita.com/Nabetani/items/1e9af1ee1d25e3b463a0
