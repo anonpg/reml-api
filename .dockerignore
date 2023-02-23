@@ -2,3 +2,4 @@
 .idea
 tmp
 /notebooks/tb_logs
+catboost_info

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import pandas as pd
 import numpy as np
 import joblib
@@ -14,8 +15,7 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
-
-model = joblib.load('/app/data/20230220_baseline.xz')
+app.add_middleware(GZipMiddleware)
 
 
 @app.get("/")
@@ -37,13 +37,16 @@ def read_item(req: Request):
         **params,
     }
     df = pd.DataFrame([params])
+    # TODO: test
+    df.loc[df['type'] != '宅地(土地と建物)', 'floor_area'] = np.nan
+    df.loc[~df['type'].isin(['宅地(土地と建物)', '中古マンション等']), 'building_year'] = np.nan
     res = model.predict(df).iloc[0]
     return res
 
 
 @app.get("/metadata")
 def read_item():
-    return convert_nan(model.metadata())
+    return metadata
 
 
 # https://qiita.com/Nabetani/items/1e9af1ee1d25e3b463a0
@@ -57,3 +60,7 @@ def convert_nan(x):
         return None
 
     return x
+
+
+model = joblib.load('/app/data/20230222_pos.xz')
+metadata = convert_nan(joblib.load('/app/data/20230221_eda_metadata.xz'))
