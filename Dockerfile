@@ -2,6 +2,9 @@ FROM jupyter/datascience-notebook:python-3.10.6
 
 USER root
 
+RUN apt-get update -y && \
+    apt-get install -y libpq-dev
+
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir \
     cloudpickle==2.0.0 \
@@ -13,7 +16,9 @@ RUN pip install --no-cache-dir \
     scipy==1.8.1 \
     category_encoders==2.6.0 \
     fastapi \
-    uvicorn[standard]
+    uvicorn[standard] \
+    dataset==1.6.0 \
+    psycopg2
 
 ADD . /app
 WORKDIR /app

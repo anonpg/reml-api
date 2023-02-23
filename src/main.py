@@ -4,6 +4,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 import pandas as pd
 import numpy as np
 import joblib
+import dataset
+import os
 
 
 app = FastAPI()
@@ -24,7 +26,7 @@ def read_root():
 
 
 @app.get("/predict")
-def read_item(req: Request):
+def read_predict(req: Request):
     params = dict(req.query_params)
     params = {
         'city2': np.nan,
@@ -45,8 +47,14 @@ def read_item(req: Request):
 
 
 @app.get("/metadata")
-def read_item():
+def read_metadata():
     return metadata
+
+
+@app.get("/rakumachis")
+def read_rakumachis():
+    db = dataset.connect(os.getenv('DATABASE_URL'))
+    return db['rakumachis'].find()
 
 
 # https://qiita.com/Nabetani/items/1e9af1ee1d25e3b463a0
