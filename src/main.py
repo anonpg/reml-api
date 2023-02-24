@@ -1,9 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi_cache.decorator import cache
 import pandas as pd
 import numpy as np
 import joblib
@@ -21,11 +18,6 @@ app.add_middleware(
     allow_headers=['*'],
 )
 app.add_middleware(GZipMiddleware)
-
-
-@app.on_event("startup")
-async def startup():
-    FastAPICache.init(InMemoryBackend())
 
 
 @app.get("/")
@@ -55,7 +47,6 @@ def read_metadata():
 
 
 @app.get("/rakumachis")
-@cache(expire=60 * 60)
 def read_rakumachis():
     db = dataset.connect(os.getenv('DATABASE_URL'))
     return list(db['rakumachis'].find())
