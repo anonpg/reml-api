@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.decorator import cache
 import pandas as pd
 import numpy as np
 import joblib
@@ -20,29 +23,29 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware)
 
 
+@app.on_event("startup")
+async def startup():
+    FastAPICache.init(InMemoryBackend())
+
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/predict")
-def read_predict(req: Request):
-    params = dict(req.query_params)
-    params = {
-        'city2': np.nan,
-        'city_plan': np.nan,
-        'nearest_sta': np.nan,
-        'nearest_sta_dist': np.nan,
-        'floor_area': np.nan,
-        'front_road_width': np.nan,
-        'building_year': np.nan,
-        **params,
-    }
-    df = pd.DataFrame([params])
+@app.post("/predict")
+async def read_predict(req: Request):
+    params_list = await req.json()
+    params_list = list(map(process_predict_params, params_list))
+
+    # params = process_predict_params(dict(req.query_params))
+
+    df = pd.DataFrame(params_list)
     # TODO: test
     df.loc[df['type'] != '宅地(土地と建物)', 'floor_area'] = np.nan
     df.loc[~df['type'].isin(['宅地(土地と建物)', '中古マンション等']), 'building_year'] = np.nan
-    res = model.predict(df).iloc[0]
+    # res = model.predict(df).iloc[0]
+    res = model.predict(df).to_dict('records')
     return res
 
 
@@ -52,6 +55,7 @@ def read_metadata():
 
 
 @app.get("/rakumachis")
+@cache(expire=60 * 60)
 def read_rakumachis():
     db = dataset.connect(os.getenv('DATABASE_URL'))
     return list(db['rakumachis'].find())
@@ -69,6 +73,18 @@ def convert_nan(x):
 
     return x
 
+
+def process_predict_params(x):
+    return {
+        'city2': np.nan,
+        'city_plan': np.nan,
+        'nearest_sta': np.nan,
+        'nearest_sta_dist': np.nan,
+        'floor_area': np.nan,
+        'front_road_width': np.nan,
+        'building_year': np.nan,
+        **x,
+    }
 
 model = joblib.load('/app/data/20230222_pos.xz')
 metadata = convert_nan(joblib.load('/app/data/20230221_eda_metadata.xz'))

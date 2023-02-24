@@ -18,8 +18,9 @@ RUN pip install --no-cache-dir \
     fastapi \
     uvicorn[standard] \
     dataset==1.6.0 \
-    psycopg2
+    psycopg2 \
+    fastapi-cache2
 
 ADD . /app
 WORKDIR /app
-CMD python -m src.main
+CMD uvicorn src.main:app --host '0.0.0.0'
