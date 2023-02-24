@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
 import joblib
 import dataset
 import os
+from functools import cache
 
 
 app = FastAPI()
@@ -28,7 +30,7 @@ def read_root():
 @app.post("/predict")
 async def read_predict(req: Request):
     params_list = await req.json()
-    params_list = list(map(process_predict_params, params_list))
+    params_list = list(map(_process_predict_params, params_list))
 
     # params = process_predict_params(dict(req.query_params))
 
@@ -37,19 +39,18 @@ async def read_predict(req: Request):
     df.loc[df['type'] != '宅地(土地と建物)', 'floor_area'] = np.nan
     df.loc[~df['type'].isin(['宅地(土地と建物)', '中古マンション等']), 'building_year'] = np.nan
     # res = model.predict(df).iloc[0]
-    res = model.predict(df).to_dict('records')
+    res = _get_model().predict(df).to_dict('records')
     return res
 
 
 @app.get("/metadata")
 def read_metadata():
-    return metadata
+    return _get_metadata()
 
 
 @app.get("/rakumachis")
 def read_rakumachis():
-    db = dataset.connect(os.getenv('DATABASE_URL'))
-    return list(db['rakumachis'].find())
+    return _get_rakumachis()
 
 
 # https://qiita.com/Nabetani/items/1e9af1ee1d25e3b463a0
@@ -65,7 +66,7 @@ def convert_nan(x):
     return x
 
 
-def process_predict_params(x):
+def _process_predict_params(x):
     return {
         'city2': np.nan,
         'city_plan': np.nan,
@@ -77,5 +78,21 @@ def process_predict_params(x):
         **x,
     }
 
-model = joblib.load('/app/data/20230222_pos.xz')
-metadata = convert_nan(joblib.load('/app/data/20230221_eda_metadata.xz'))
+
+@cache
+def _get_model():
+    return joblib.load('/app/data/20230222_pos.xz')
+
+
+@cache
+def _get_metadata():
+    metadata = convert_nan(joblib.load('/app/data/20230222_pos_metadata.xz'))
+    metadata = JSONResponse(metadata)
+    return metadata
+
+
+@cache
+def _get_rakumachis():
+    db = dataset.connect(os.getenv('DATABASE_URL'))
+    res = list(db['rakumachis'].find())
+    return JSONResponse(res)
