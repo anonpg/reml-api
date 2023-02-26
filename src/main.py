@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
 import joblib
@@ -86,13 +85,10 @@ def _get_model():
 
 @cache
 def _get_metadata():
-    metadata = convert_nan(joblib.load('/app/data/20230222_pos_metadata.xz'))
-    metadata = JSONResponse(metadata)
-    return metadata
+    return convert_nan(joblib.load('/app/data/20230222_pos_metadata.xz'))
 
 
 @cache
 def _get_rakumachis():
     db = dataset.connect(os.getenv('DATABASE_URL'))
-    res = list(db['rakumachis'].find())
-    return JSONResponse(res)
+    return list(db['rakumachis'].find())
